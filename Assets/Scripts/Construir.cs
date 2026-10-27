@@ -2,21 +2,10 @@ using UnityEngine;
 
 public class Construir : MonoBehaviour
 {
-    [Header("Referencias")]
-    public GestorEspacios gestorEspacios;
-
-    [Header("Prefabs de los Edificios")]
     public GameObject casaPrefab;
     public GameObject fabricaPrefab;
     public GameObject tiendaPrefab;
-
-    [Header("Configuración de Terreno")]
     public LayerMask capaSuelo;
-
-    [Header("Costos de Construcción")]
-    public int costoCasa = 50;
-    public int costoFabrica = 100;
-    public int costoTienda = 80;
 
     private int edificioSeleccionado = 0;
 
@@ -28,44 +17,28 @@ public class Construir : MonoBehaviour
     {
         if (edificioSeleccionado != 0 && Input.GetMouseButtonDown(0))
         {
-            ConstruirEdificio();
-        }
-    }
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-    private void ConstruirEdificio()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, capaSuelo))
-        {
-            Vector3 posicionAlineada = gestorEspacios.AjustarACuadricula(hit.point);
-
-            if (!gestorEspacios.EstaOcupado(posicionAlineada))
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, capaSuelo))
             {
-                int dineroActual = Recursos.GetInstance().dinero;
+                // Toma el centro exacto del bloque de terreno que pusiste en Unity
+                Vector3 posicion = hit.collider.transform.position;
+                posicion.y = 0; // Evita que flote
 
-                if (edificioSeleccionado == 1 && dineroActual >= costoCasa)
+                bool ocupado = false;
+                foreach (Collider obj in Physics.OverlapSphere(posicion, 1f))
                 {
-                    Instantiate(casaPrefab, posicionAlineada, Quaternion.identity);
-                    Recursos.GetInstance().AgregarDinero(-costoCasa);
+                    if (obj.GetComponent<Edificios>() != null) ocupado = true;
+                }
+
+                if (!ocupado)
+                {
+                    if (edificioSeleccionado == 1) Instantiate(casaPrefab, posicion, Quaternion.identity);
+                    if (edificioSeleccionado == 2) Instantiate(fabricaPrefab, posicion, Quaternion.identity);
+                    if (edificioSeleccionado == 3) Instantiate(tiendaPrefab, posicion, Quaternion.identity);
+
                     edificioSeleccionado = 0;
                 }
-                else if (edificioSeleccionado == 2 && dineroActual >= costoFabrica)
-                {
-                    Instantiate(fabricaPrefab, posicionAlineada, Quaternion.identity);
-                    Recursos.GetInstance().AgregarDinero(-costoFabrica);
-                    edificioSeleccionado = 0;
-                }
-                else if (edificioSeleccionado == 3 && dineroActual >= costoTienda)
-                {
-                    Instantiate(tiendaPrefab, posicionAlineada, Quaternion.identity);
-                    Recursos.GetInstance().AgregarDinero(-costoTienda);
-                    edificioSeleccionado = 0;
-                }
-            }
-            else
-            {
-                Debug.Log("Espacio ocupado en esta cuadrícula.");
             }
         }
     }
